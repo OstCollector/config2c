@@ -1,0 +1,107 @@
+config2c is a tool that generates a C parser of a configure file.
+Compared to existing prjects, config2c generates the C structure itself,
+thus users can directly use the fields instead of a second parsing.
+config2c also supports customed types so user can directly parse a string
+into a struct. The fomat spec and the config file mostly follow C gramar.
+
+
+Concepts:
+
+For configure files:
+
+Basic types: char, integer, float, string, identifier
+These types are parsed mostly following spec of the C programming language,
+excepting:
+  1. numbers (integers and floats) has a optional '+' and '-' sign,
+    and suffices like L, u, etc are ignored.
+  2. char and strings do not accept octal escape strings, and unicode are
+    not tested yet. wchar_t is not implemented
+
+Composed data types:
+These types are parsed like C, we use following notation for an array:
+'[' element ',' element ',' ... element ',' ']'
+For a struct / union, config writer is requested to provide field name:
+'{' '.' name '=' value ',' ...  '.' name '=' value ',' '}''
+
+The content of a configure file is a struct.
+
+For configre spec:
+User-defined types:
+mapped to a list of C types. Users are required to
+provide parse, free and dump functions. The types of arguments shall be
+the same as the type list.
+example/prim_funcs.c is a good example.
+
+enum:
+similar to C enums. 'as' is provided to define an alias of an enum
+constant. If the parser sees an alias, it automatically converts it to
+the corresponding constant.
+
+struct:
+mapped to c struct.
+Following types are supported:
+user-defined types, struct, union, enum, unnamed union
+Members of user-defined types are mapped to a list of C variables, the type
+of each is defined by the mapped types list of the user-defined type.
+enum and struct are directly mapped.
+unions are mapped to a union and an enum, which specifies the selected
+member.
+
+all values except unnamed union can be a scale value, a fixed length array,
+or a variable length array.
+Both scale value and fixed length array are mapped. The length of a fixed
+length array is checked. A variable length array is mapped to a pointer and
+a length field.
+
+A struct can optionally have an export attribute, the corresponding
+functions would be exported.
+
+union:
+A union is mapped to a C union and a C enum. The latter is used to specify
+the field set. A field in a union can be a value of user-defined type,
+enum, struct or an unnamed struct. A field of user-defined type in a union
+cannot be mapped to multiple fields. A field in a union can not be a
+variable length array.
+
+Note:
+A unnamed member cannot have its unnamed member.
+
+
+Install:
+You need to run following commands to install config2c:
+1.  rename the dir containing README into some name other than config2c
+2.  execute ./create_tarball.sh
+3.  make
+4.  make install
+By default, config2c would be installed into /usr/local/, you can use
+make install DESTDIR=<prefix> to change the install location.
+If you use the tarball version, you won't need step 1, 2.
+Requirement: GCC, (non tarball version: bison, flex)
+
+
+Usage:
+1. Write config spec
+2. Write functions for user-defined types, example/prim_funcs is an
+   example
+3. Write prelude to include necessary headers, etc. Prelude would be copied
+   to the header of generated .h file.
+4. run following command:
+       config2c --spec_path=... \
+    		--prim_path=... \
+    		--prelude_path=... \
+    		--hdr_path=... \
+    		--src_path=... \
+    		--include_guard=...
+   This command generates a .c file and a .h file. The .h file includes
+definitions of the data types. For each exported struct, following
+functions are provided:
+   A function that parses a file into a struct.
+   A function that frees a struct.
+   A function that dumps a struct.
+5. If you want to compile the project, you need following files:
+        supplement/parser.c
+        supplement/parser.h
+        supplement/parsery.tab.c
+        supplement/parsery.tab.h
+        supplement/parserl.lex.c
+   Please put these files into your project

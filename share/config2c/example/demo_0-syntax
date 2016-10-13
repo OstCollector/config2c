@@ -1,0 +1,58 @@
+int : parse_int dump_int free_int ( "int" );
+uint : parse_uint dump_uint free_uint ( "uint" );
+float : parse_float dump_float free_float ( "float" );
+string : parse_string dump_string free_string ( "const char *" );
+inet4 : parse_inet4 dump_inet4 free_inet4 ( "struct in_addr" );
+inet4wp : parse_inet4wp dump_inet4wp free_inet4wp ( "struct in_addr", "int" );
+inet6wp : parse_inet6wp dump_inet6wp free_inet6wp ( "struct in6_addr", "int" );
+
+
+struct s_foo {
+	int s_foo_i;
+	float s_foo_f[s_foo_f_len];
+	string s_foo_s[5];
+	inet6wp ip6p (ip6, prefix6);
+	inet4wp ip4p (ip4, prifix4) [ip4_len];
+} export;
+
+enum e_foo {
+	E_FOO_FOO ,
+	E_FOO_BAR as BAR ,
+};
+
+union s_v : s_v_type {
+	int i as S_V_I;
+	float j as S_V_J;
+	struct {} as S_V_S;
+};
+
+union s_u : s_u_type {
+	struct s_foo foo as S_U_TYPE_FOO;
+	string bar as S_U_TYPE_BAR;
+	enum e_foo en[5] as S_U_TYPE_EN;
+	inet4 e_net[1] as S_U_TYPE_NET;
+	struct {
+		int s_foo;
+		string s_bar[3];
+		enum e_foo s_enum[s_enum_len];
+		string s_str[s_str_len];
+		union s_v s_u as s_u_type;
+		union s_v s_u_v[s_u_v_len] as s_u_v_type;
+	} as S_U_TYPE_STR;
+};
+
+struct empty {};
+
+struct cfg {
+	struct s_foo foo;
+	struct empty earr[earr_len];
+	union s_u bar as bar_type;
+	union s_v baz[baz_len] as baz_type;
+	union {
+		int f as CFG_A_I;
+		float g[2] as CFG_A_F;
+		string s as CFG_A_S;
+	} : u_a_type;
+} export ;
+
+
