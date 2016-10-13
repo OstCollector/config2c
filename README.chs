@@ -56,13 +56,10 @@ union的成员也可以是一个匿名struct，这个struct也需要分配一个
 
 安装
 config2c的构建需要以下步骤：
-1.  重命名包含README的文件夹为除了config2c的另一个名字
-2.  执行 ./create_tarball.sh
-3.  make
-4.  make install
+1.  make
+2.  make install
 默认安装到/usr/install/，可以通过make install DESTDIR=<prefix>更改安装路径。
-如果使用了tar打包的版本，无需执行1、2步。
-需求：bison、flex（针对非打包版本），GCC
+需求：bison、flex、GCC
 
 使用
 1, 编写配置文件的类型说明。参见上述说明以及example/demo_1-syntax文件

@@ -69,14 +69,11 @@ A unnamed member cannot have its unnamed member.
 
 Install:
 You need to run following commands to install config2c:
-1.  rename the dir containing README into some name other than config2c
-2.  execute ./create_tarball.sh
-3.  make
-4.  make install
+1.  make
+2.  make install
 By default, config2c would be installed into /usr/local/, you can use
 make install DESTDIR=<prefix> to change the install location.
-If you use the tarball version, you won't need step 1, 2.
-Requirement: GCC, (non tarball version: bison, flex)
+Requirement: GCC, bison, flex
 
 
 Usage:
