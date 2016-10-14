@@ -26,5 +26,5 @@
 	+ share/config2c/supplement/parserl.l
 	+ share/config2c/supplement/parsery.y
 
-	  Version: config2c-0.1_alpha
+	  Version: config2c-0.1.0_alpha
 	  Initial Commit
