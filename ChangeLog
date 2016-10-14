@@ -1,0 +1,30 @@
+2016-10-14  Lifan Su
+
+	+ ChangeLog
+	+ LICENSE
+	+ Makefile
+	+ README
+	+ README_chs
+	+ config2c.c
+	+ config2c.h
+	+ config2cl.l
+	+ config2cy.y
+	+ share
+	+ share/config2c
+	+ share/config2c/example
+	+ share/config2c/example/demo_0-example
+	+ share/config2c/example/demo_0-example-1
+	+ share/config2c/example/demo_0-main.c
+	+ share/config2c/example/demo_0-syntax
+	+ share/config2c/example/make.sh
+	+ share/config2c/example/prelude
+	+ share/config2c/example/prim_funcs.c
+	+ share/config2c/supplement
+	+ share/config2c/supplement/Makefile
+	+ share/config2c/supplement/parser.c
+	+ share/config2c/supplement/parser.h
+	+ share/config2c/supplement/parserl.l
+	+ share/config2c/supplement/parsery.y
+
+	  Version: config2c-0.1_alpha
+	  Initial Commit
