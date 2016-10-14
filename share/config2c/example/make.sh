@@ -10,7 +10,7 @@ cp ../../supplement/parsery.tab.h ./
 cp ../../supplement/parserl.lex.c ./
 
 for build in demo_0 ; do
-	../../../bin/config2c \
+	../../../../bin/config2c \
 		--spec_path="../${build}-syntax" \
 		--prim_path="../prim_funcs.c" \
 		--prelude_path="../prelude" \
