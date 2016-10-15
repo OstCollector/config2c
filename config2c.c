@@ -984,7 +984,7 @@ static void parse_struct(string name, const struct node_member_list *list)
 	osi(2, "ctx->node = memb->value;\n");
 	osi(2, "ctx->msg = \"unknown member.\";\n");
 	osi(2, "ret = -EINVAL;\n");
-	osi(2, "goto error_all;");
+	osi(2, "goto error_all;\n");
 	osi(1, "}\n"); /* for */
 	osi(1, "for (i = 0; i < %ld; ++i) {\n", cnt);
 	osi(2, "if (!inited[i]) {\n");
