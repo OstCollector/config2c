@@ -5,3 +5,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 
+struct eth_mac {
+	uint8_t a[6];
+};
+

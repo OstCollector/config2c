@@ -3,6 +3,8 @@
  * See LICENSE for full license details.
  */
 
+#include <stdint.h>
+
 #define IP4_ADDR_MAX (15)
 #define IP4_PRE_MAX (2)
 
@@ -236,8 +238,8 @@ static void free_char(char *val) {}
 static void free_schar(signed char *val) {}
 static void free_uchar(unsigned char *val) {}
 
-#define signed_gen(func_name, out_type, min, max) \
-	static int func_name(struct pass_to_conv *context, out_type *result, const struct node_value *val) \
+#define signed_def(def_type, map_type, min, max) \
+	static int parse_##def_type(struct pass_to_conv *context, map_type *result, const struct node_value *val) \
 	{ \
 		int ret; \
 		long long i; \
@@ -261,16 +263,23 @@ static void free_uchar(unsigned char *val) {}
 			context->msg = "wrong type, expect integer."; \
 			return -EINVAL; \
 		} \
-	}
+	} \
+	\
+	static void dump_##def_type(put_func func, struct dump_context *ctx, const map_type *val) \
+	{ \
+		func(ctx, "%lld", (long long)*val); \
+	} \
+	\
+	static void free_##def_type(map_type *val) {}
 
-#define unsigned_gen(func_name, out_type, max) \
-	static int func_name(struct pass_to_conv *context, out_type *result, const struct node_value *val) \
+#define unsigned_def(def_type, map_type, max) \
+	static int parse_##def_type(struct pass_to_conv *context, map_type *result, const struct node_value *val) \
 	{ \
 		int ret; \
 		unsigned long long i; \
 		switch (val->type) { \
 		case VAL_SCALE_INT: \
-			ret = to_ulonglong(&i, val->int_str); \
+			ret = to_longlong(&i, val->int_str); \
 			if (ret) { \
 				context->node = val; \
 				context->msg = "overflow occurred."; \
@@ -288,47 +297,32 @@ static void free_uchar(unsigned char *val) {}
 			context->msg = "wrong type, expect integer."; \
 			return -EINVAL; \
 		} \
-	}
-
-#define signed_dump(func_name, in_type) \
-	static void func_name(put_func func, struct dump_context *ctx, const in_type *val) \
+	} \
+	\
+	static void dump_##def_type(put_func func, struct dump_context *ctx, const map_type *val) \
 	{ \
 		func(ctx, "%lld", (long long)*val); \
-	}
+	} \
+	\
+	static void free_##def_type(map_type *val) {}
 
-#define unsigned_dump(func_name, in_type) \
-	static void func_name(put_func func, struct dump_context *ctx, const in_type *val) \
-	{ \
-		func(ctx, "%llu", (unsigned long long)*val); \
-	}
+signed_def(short, short, SHRT_MIN, SHRT_MAX)
+unsigned_def(ushort, unsigned short, USHRT_MAX)
+signed_def(int, int, INT_MIN, INT_MAX)
+unsigned_def(uint, unsigned, UINT_MAX)
+signed_def(long, long, LONG_MIN, LONG_MAX)
+unsigned_def(ulong, unsigned long, ULONG_MAX)
+signed_def(llong, long long, LLONG_MIN, LLONG_MAX)
+unsigned_def(ullong, unsigned long long, ULLONG_MAX)
 
-signed_gen(parse_short, short, SHRT_MIN, SHRT_MAX)
-unsigned_gen(parse_ushort, unsigned short, USHRT_MAX)
-signed_dump(dump_short, short)
-unsigned_dump(dump_ushort, unsigned short)
-static void free_short(short *val) {}
-static void free_ushort(unsigned short *val) {}
-
-signed_gen(parse_int, int, INT_MIN, INT_MAX)
-unsigned_gen(parse_uint, unsigned, UINT_MAX)
-signed_dump(dump_int, int)
-unsigned_dump(dump_unsigned, unsigned)
-static void free_int(int *val) {}
-static void free_uint(unsigned *val) {}
-
-signed_gen(parse_long, long, LONG_MIN, LONG_MAX)
-unsigned_gen(parse_ulong, unsigned long, ULONG_MAX)
-signed_dump(dump_long, long)
-unsigned_dump(dump_ulong, unsigned long)
-static void free_long(long *val) {}
-static void free_ulong(unsigned long *val) {}
-
-signed_gen(parse_llong, long long, LLONG_MIN, LLONG_MAX)
-unsigned_gen(parse_ullong, unsigned long long, ULLONG_MAX)
-signed_dump(dump_llong, long long)
-unsigned_dump(dump_uolong, unsigned long long)
-static void free_llong(long long *val) {}
-static void free_ullong(unsigned long long *val) {}
+signed_def(s8, int8_t, INT8_MIN, INT8_MAX)
+unsigned_def(u8, uint8_t, UINT8_MAX)
+signed_def(s16, int16_t, INT16_MIN, INT16_MAX)
+unsigned_def(u16, uint16_t, UINT16_MAX)
+signed_def(s32, int32_t, INT32_MIN, INT32_MAX)
+unsigned_def(u32, uint32_t, UINT32_MAX)
+signed_def(s64, int64_t, INT64_MIN, INT64_MAX)
+unsigned_def(u64, uint64_t, UINT64_MAX)
 
 #define fp_gen(func_name, out_type, convert_func) \
 	static int func_name(struct pass_to_conv *context, out_type *result, const struct node_value *val) \
@@ -632,4 +626,38 @@ static void free_inet4(struct in_addr *net) {}
 static void free_inet6(struct in6_addr *net) {}
 static void free_inet4wp(struct in_addr *net, int *val) {}
 static void free_inet6wp(struct in6_addr *net, int *val) {}
+
+static int parse_eth_mac(struct pass_to_conv *context, struct eth_mac *mac, const struct node_value *val)
+{
+	int i;
+	char t;
+	if (val->type != VAL_SCALE_STRING) {
+		context->node = val;
+		context->msg = "wrong type, expect string (in mac address)."; \
+		return -EINVAL;
+	}
+	i = sscanf(val->string_str, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx%c",
+			&mac->a[0], &mac->a[1], &mac->a[2], &mac->a[3],
+			&mac->a[4], &mac->a[5], &t);
+	if (i == 6) {
+		return 0;
+	}
+	i = sscanf(val->string_str, "%hhx-%hhx-%hhx-%hhx-%hhx-%hhx%c",
+			&mac->a[0], &mac->a[1], &mac->a[2], &mac->a[3],
+			&mac->a[4], &mac->a[5], &t);
+	if (i == 6) {
+		return 0;
+	}
+	context->node = val;
+	context->msg = "is not a valid mac address string."; \
+	return -EINVAL;
+}
+
+static int dump_eth_mac(put_func func, struct dump_context *ctx, const struct eth_mac *val)
+{
+	func(ctx, "\"%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx\"",
+			val->a[0], val->a[1], val->a[2], val->a[3], val->a[4], val->a[5]);
+}
+
+static int free_eth_mac(struct eth_mac *val) {}
 
