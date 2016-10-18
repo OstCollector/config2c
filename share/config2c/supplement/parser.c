@@ -8,6 +8,12 @@
 #include <stdarg.h>
 #include "parser.h"
 
+typedef void *yyscan_t;
+extern void yyset_in(FILE *in_str , yyscan_t yyscanner);
+extern void *yy_scan_string (const char *yystr , yyscan_t yyscanner);
+
+
+
 struct mem_elem {
 	struct mem_elem *next;
 	void *data;
@@ -164,4 +170,119 @@ err:
 	return NULL;
 }
 
+void init_pass_to_bison(struct pass_to_bison *ctx, struct mem_pool *pool)
+{
+	ctx->pool = pool;
+	ctx->ok = 1;
+	ctx->first_line = 1;
+	ctx->first_column = 1;
+	ctx->last_line = 1;
+	ctx->last_column = 1;
+	ctx->myerrno = 0;
+	ctx->err_reason = NULL;
+	ctx->output = NULL;
+}
+
+static const char *msg_conflict = "internal error, got impossible result: "
+	"ok: %d, myerror: %d, output: %p";
+
+
+
+int yacc_parse_file(const char *path, const char **err_msg,
+		struct pass_to_bison *ctx)
+{
+	FILE *fp;
+	int ret;
+	yyscan_t scanner;
+
+	*err_msg = NULL;
+	fp = fopen(path, "r");
+	if (!fp) {
+		ret = -errno;
+		*err_msg = make_message("failed to open config file %s.\n",
+				path);
+		goto fail_open;
+	}
+	ret = yylex_init(&scanner);
+	if (ret) {
+		ret = -errno;
+		*err_msg = make_message("failed to create scanner for lex");
+		goto err_yylex_init;
+	}
+	yyset_in(fp, scanner);
+	yyparse(scanner, ctx);
+
+	if ((ctx->ok && (ctx->myerrno || !ctx->output)) ||
+			(!ctx->ok && (!ctx->myerrno || ctx->output))) {
+		ret = -EINVAL;
+		*err_msg = make_message(msg_conflict, ctx->ok,
+				ctx->myerrno, ctx->output);
+		goto err_yacc;
+	}
+	if (!ctx->output) {
+		ret = ctx->myerrno;
+		*err_msg = ctx->err_reason;
+		goto err_yacc;
+	}
+
+	yylex_destroy(scanner);
+	fclose(fp);
+	return 0;
+
+err_yacc:
+	yylex_destroy(scanner);
+err_yylex_init:
+	fclose(fp);
+fail_open:
+	return ret;
+}
+
+int yacc_parse_string(const char *str, const char **err_msg,
+		struct pass_to_bison *ctx)
+{
+	yyscan_t scanner;
+	void *buffer_state;
+	int ret;
+
+	*err_msg = NULL;
+	ret = yylex_init(&scanner);
+	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
+	if (ret) {
+		ret = -errno;
+		goto err_yylex_init;
+	}
+	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
+	buffer_state = yy_scan_string(str, scanner);
+	if (!buffer_state) {
+		ret = -ENOMEM;
+		goto err_scan_string;
+	}
+
+	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
+	yyparse(scanner, ctx);
+	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
+	if ((ctx->ok && (ctx->myerrno || !ctx->output)) ||
+			(!ctx->ok && (!ctx->myerrno || ctx->output))) {
+		ret = -EINVAL;
+		*err_msg = make_message(msg_conflict, ctx->ok,
+				ctx->myerrno, ctx->output);
+		goto err_yacc;
+	}
+	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
+	if (!ctx->output) {
+		ret = ctx->myerrno;
+		*err_msg = ctx->err_reason;
+		goto err_yacc;
+	}
+	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
+	
+	yylex_destroy(scanner);
+	return 0;
+
+err_yacc:
+err_scan_string:
+	yylex_destroy(scanner);
+err_yylex_init:
+	return ret;
+}
 

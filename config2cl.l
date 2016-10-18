@@ -15,6 +15,8 @@ IS                      ((u|U)|(u|U)?(l|L|ll|LL)|(l|L|ll|LL)(u|U))
 
 %option noyywrap
 
+
+
 %{
 
 #include <stdlib.h>
@@ -51,9 +53,15 @@ void comment(void);
 void to_int(void);
 void to_str(void);
 void to_str2(void);
+void to_str3(void);
 
 #define YY_USER_ACTION advance_token();
 
+#if 0
+#define LDBG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define LDBG(...) do { ; } while (0)
+#endif
 
 %}
 
@@ -77,6 +85,7 @@ void to_str2(void);
 ";"		{ return ';'; }
 ","		{ return ','; }
 ":"		{ return ':'; }
+"="		{ return '='; }
 
 {IL}({L}|{D})*	{ to_str(); return IDEN; }
 
@@ -84,7 +93,9 @@ void to_str2(void);
 0[0-7]*?		{ to_int(); return INTEGER; } 
 [1-9]{D}*?		{ to_int(); return INTEGER; } 
 
-\"[a-zA-Z][0-9a-zA-Z_\ \*]*\"            { to_str2(); return STRING; }
+\'[a-zA-Z][0-9a-zA-Z_\ \*]*\'            { to_str2(); return STRING; }
+
+\"([^"\\\n]|\\[\\\"])*\"		 { to_str3(); return DEFVAL; }
 
 
 .			{ yyerror("Unknown input"); exit(EXIT_FAILURE);}
@@ -113,6 +124,7 @@ void to_int(void)
 				yytext, yylloc.first_line, yylloc.last_line);
 		exit(EXIT_FAILURE);
 	}
+	LDBG("got integer: %ld\n", yylval.int_val);
 }
 
 void to_str(void)
@@ -122,6 +134,7 @@ void to_str(void)
 		fprintf(stderr, "failed to malloc memory for string\n");
 		exit(EXIT_FAILURE);
 	}
+	LDBG("got identifier: %s\n", yylval.str_val);
 }
 
 void to_str2(void)
@@ -132,5 +145,16 @@ void to_str2(void)
 		exit(EXIT_FAILURE);
 	}
 	yylval.str_val[strlen(yylval.str_val) - 1] = '\0';
+	LDBG("got string: %s\n", yylval.str_val);
+}
+
+void to_str3(void)
+{
+	yylval.str_val = strdup(yytext);
+	if (!yylval.str_val) {
+		fprintf(stderr, "failed to malloc memory for string\n");
+		exit(EXIT_FAILURE);
+	}
+	LDBG("got value: %s\n", yylval.str_val);
 }
 

@@ -125,8 +125,12 @@ static void verify_def_struct(const struct node_member_list *list,
 		"field), which is unsupported\n";
 	const char *notexist = "member %s.%s has a unknown type %s\n";
 	const char *unmatch = "member %s.%s is unmatched to its type %s\n";
+	const char *no_default = "member %s.%s should not have default value\n";
 
 	for (i = 0; list; ++i, list = list->next) {
+		if (!top && list->default_val) {
+			fprintf(stderr, no_default, name, list->in_name);
+		}
 		switch (list->type) {
 		case NODE_MEMBER_DEF_PRIM:
 			map = lookup_map(list->type_name);
@@ -615,6 +619,7 @@ struct parse_opts {
 			string alt_val;
 		} u;
 	};
+	int is_default;
 };
 
 static void helper_parse_scale(const struct type_decl *decl,
@@ -687,7 +692,9 @@ static void helper_parse_scale(const struct type_decl *decl,
 		osi(l + 1, "inited_%s[%ld] = 1;\n", opts->u.alt_val,
 				opts->u.idx);
 	}
-	osi(l + 1, "continue;\n");
+	if (!opts->is_default) {
+		osi(l + 1, "continue;\n");
+	}
 	osi(l, "}\n"); /* if matches */
 }
 
@@ -802,7 +809,11 @@ static void helper_parse_array(const struct node_vec_def *vec,
 		osi(l + 1, "inited_%s[%ld] = 1;\n", opts->u.alt_val,
 				opts->u.idx);
 	}
-	osi(l + 1, "continue;\n");
+	if (!opts->is_default) {
+		osi(l + 1, "continue;\n");
+	} else {
+		osi(l + 1, "goto done_%s;\n", name);
+	}
 	osi(0, "error_%s:\n", name);
 	osi(l + 1, "for (; i > 0; --i) {\n");
 	switch (decl->type) {
@@ -831,6 +842,9 @@ static void helper_parse_array(const struct node_vec_def *vec,
 		}
 	}
 	osi(l + 1, "goto error_all;\n");
+	if (opts->is_default) {
+		osi(l + 1, "done_%s:\n", name);
+	}
 	osi(l, "}\n"); /* if matches */
 }
 
@@ -898,13 +912,21 @@ static void parse_struct(string name, const struct node_member_list *list)
 	osi(1, "int inited[%ld] = {};\n", cnt);
 	osi(1, "int ret;\n");
 	osi(1, "long i, len;\n");
-	osi(1, "struct node_members *memb;\n");
+	osi(1, "struct node_members *memb, default_memb;\n");
 	osi(1, "struct node_elems *elem;\n");
+	osi(1, "struct pass_to_bison opaque;\n");
+	for (memb = list, idx = 0; memb; memb = memb->next, ++idx) {
+		if (memb->default_val) {
+			osi(1, "const char *default_%ld = %s;\n",
+					idx, memb->default_val);
+		}
+	}
 	osi(1, "if (input->type != VAL_MEMBERS) {\n");
 	osi(2, "ctx->node = input;\n");
 	osi(2, "ctx->msg = \"invalid type, expecting list of members.\";\n");
 	osi(2, "return -EINVAL;\n");
 	osi(1, "}\n"); /* if */
+	opts.is_default = 0;
 	osi(1, "for (memb = input->members; memb; memb = memb->next) {\n");
 	for (memb = list, idx = 0; memb; memb = memb->next, ++idx) {
 		switch (memb->type) {
@@ -986,14 +1008,122 @@ static void parse_struct(string name, const struct node_member_list *list)
 	osi(2, "ret = -EINVAL;\n");
 	osi(2, "goto error_all;\n");
 	osi(1, "}\n"); /* for */
-	osi(1, "for (i = 0; i < %ld; ++i) {\n", cnt);
-	osi(2, "if (!inited[i]) {\n");
-	osi(3, "ctx->node = input;\n");
-	osi(3, "ctx->msg = \"some field is not initialized.\";\n");
-	osi(3, "ret = -EINVAL;\n");
-	osi(3, "goto error_all;\n");
-	osi(2, "}\n"); /* if */
-	osi(1, "}\n"); /* for */
+	opts.is_default = 1;
+	for (memb = list, idx = 0; memb; memb = memb->next, ++idx) {
+		if (!memb->default_val) {
+			osi(1, "if (!inited[%ld]) {\n", idx);
+			osi(2, "ctx->node = input;\n");
+			osi(2, "ctx->msg = \"some field is not initialized.\";\n");
+			osi(2, "ret = -EINVAL;\n");
+			osi(2, "goto error_all;\n");
+			osi(1, "}\n"); /* if */
+			continue;
+		}
+		osi(1, "if (!inited[%ld]) {\n", idx);
+		osi(2, "init_pass_to_bison(&opaque, ctx->pool);\n");
+		osi(2, "ret = yacc_parse_string(default_%ld, &ctx->msg, &opaque);\n", idx);
+		osi(2, "if (ret) {\n");
+		osi(3, "ctx->node = input;\n");
+		osi(3, "goto error_all;\n");
+		osi(2, "}\n"); /* if ret */
+		if (memb->type != NODE_MEMBER_DEF_UNNAMED_UNION) {
+			osi(2, "default_memb.next = NULL;\n");
+			osi(2, "default_memb.name = \"%s\";\n", memb->in_name);
+			osi(2, "default_memb.value = opaque.output;\n");
+			osi(2, "default_memb.value->parent = input;\n");
+			osi(2, "default_memb.value->name_copy = \"%s\";\n", memb->in_name);
+			osi(2, "memb = &default_memb;\n");
+		} else {
+			osi(2, "if (opaque.output->type != VAL_MEMBERS) {\n");
+			osi(3, "ctx->node = input;\n");
+			osi(3, "ctx->msg = \"invalid initial value: "
+					"value not selected\";\n");
+			osi(2, "}\n"); /* if invalid type */
+			
+			osi(2, "if (len_node_members(opaque.output) != 1) {\n");
+			osi(3, "ctx->node = input;\n");
+			osi(3, "ctx->msg = \"invalid initial value: "
+					"multiple value selected\";\n");
+			osi(2, "}\n"); /* if invalid type */
+
+			osi(2, "memb = opaque.output->members;\n");
+			osi(2, "memb->value->parent = input;\n");
+		}
+		switch (memb->type) {
+		case NODE_MEMBER_DEF_PRIM:
+			opts.s.idx = idx;
+			opts.s.opt_var = NULL;
+			opts.s.opt_val = NULL;
+			decl.type = TYPE_DECL_PRIM;
+			decl.type_name = memb->type_name;
+			helper_parse(&memb->vec, &decl, memb->in_name,
+					memb->mapped, &opts, 2);
+			break;
+		case NODE_MEMBER_DEF_ENUM:
+			opts.s.idx = idx;
+			opts.s.opt_var = NULL;
+			opts.s.opt_val = NULL;
+			decl.type = TYPE_DECL_ENUM;
+			decl.type_name = memb->type_name;
+			helper_parse(&memb->vec, &decl, memb->in_name,
+					memb->mapped, &opts, 2);
+			break;
+		case NODE_MEMBER_DEF_STRUCT:
+			opts.s.idx = idx;
+			opts.s.opt_var = NULL;
+			opts.s.opt_val = NULL;
+			decl.type = TYPE_DECL_STRUCT;
+			decl.type_name = memb->type_name;
+			helper_parse(&memb->vec, &decl, memb->in_name,
+					memb->mapped, &opts, 2);
+			break;
+		case NODE_MEMBER_DEF_UNION:
+			opts.s.idx = idx;
+			opts.s.opt_var = NULL;
+			opts.s.opt_val = NULL;
+			decl.type = TYPE_DECL_UNION;
+			decl.type_name = memb->type_name;
+			helper_parse(&memb->vec, &decl, memb->in_name,
+					memb->mapped, &opts, 2);
+			break;
+		case NODE_MEMBER_DEF_UNNAMED_UNION:
+			opts.s.idx = idx;
+			opts.s.opt_var = memb->alt_enum;
+			for (alt = memb->alters; alt; alt = alt->next) {
+				switch (alt->type) {
+				case NODE_ALTER_DEF_PRIM:
+					opts.s.idx = idx;
+					opts.s.opt_val = alt->enum_val;
+					decl.type = TYPE_DECL_PRIM;
+					decl.type_name = alt->type_name;
+					helper_parse(&alt->vec, &decl, alt->in_name,
+							alt->mapped, &opts, 2);
+					break;
+				case NODE_ALTER_DEF_ENUM:
+					opts.s.idx = idx;
+					opts.s.opt_val = alt->enum_val;
+					decl.type = TYPE_DECL_ENUM;
+					decl.type_name = alt->type_name;
+					helper_parse(&alt->vec, &decl, alt->in_name,
+							alt->mapped, &opts, 2);
+					break;
+				case NODE_ALTER_DEF_STRUCT:
+					opts.s.idx = idx;
+					opts.s.opt_val = alt->enum_val;
+					decl.type = TYPE_DECL_STRUCT;
+					decl.type_name = alt->type_name;
+					helper_parse(&alt->vec, &decl, alt->in_name,
+							alt->mapped, &opts, 2);
+					break;
+				default:
+					fprintf(stderr, "error at %d (%s) : impossible err\n",
+							__LINE__, __func__);
+					exit(EXIT_FAILURE);
+				}
+			}
+		}
+		osi(1, "}\n"); /* if !inited */
+	}
 	osi(1, "return 0;\n");
 	osi(0, "error_all:\n");
 	for (memb = list, idx = 0; memb; memb = memb->next, ++idx) {
@@ -1063,6 +1193,7 @@ static void parse_union(string name, string enum_name,
 	struct parse_opts opts;
 
 	opts.mode = PARSE_UNION;
+	opts.is_default = 0;
 
 	osi(0, "static int parse__union_%s(struct pass_to_conv *ctx, union %s *value, "
 			"enum %s *type_value, const struct node_value *input)\n",
@@ -1752,59 +1883,20 @@ const char indent_dump_fmt[] =
 const char parser_func_fmt[] =
 "int config_parse_%s(struct %s *value, const char *path, const char **err_msg)\n"
 "{\n"
-"        FILE *fp;\n"
-"        void *scanner;\n"
 "        struct pass_to_bison opaque;\n"
 "        struct mem_pool pool;\n"
 "        struct pass_to_conv context;\n"
 "        int ret;\n"
 "\n"
-"        const char *msg_conflict = \"internal error, got impossible result: \"\n"
-"                \"ok: %%d, myerrno: %%d, output: %%pn\";\n"
-"\n"
-"        fp = fopen(path, \"r\");\n"
-"        if (!fp) {\n"
-"                ret = -errno;\n"
-"                *err_msg = make_message(\"failed to open file %%s for openn\",\n"
-"                                path);\n"
-"                goto err_fopen;\n"
-"        }\n"
-"\n"
 "        mem_pool_init(&pool);\n"
-"        opaque.pool = &pool;\n"
-"        opaque.ok = 1;\n"
-"        opaque.first_line = opaque.first_column = 1;\n"
-"        opaque.last_line = opaque.last_column = 1;\n"
-"        opaque.myerrno = 0;\n"
-"        opaque.err_reason = \"no error occurred\";\n"
-"        opaque.output = NULL;\n"
+"        init_pass_to_bison(&opaque, &pool);\n"
 "\n"
-"        ret = yylex_init(&scanner);\n"
+"        ret = yacc_parse_file(path, err_msg, &opaque);\n"
 "        if (ret) {\n"
-"                ret = -errno;\n"
-"                goto err_yylex_init;\n"
+"                goto error;\n"
 "        }\n"
 "\n"
-"        yyset_in(fp, scanner);\n"
-"        yyparse(scanner, &opaque);\n"
-"        if (opaque.ok && (opaque.myerrno || !opaque.output)) {\n"
-"                ret = -EINVAL;\n"
-"                *err_msg = make_message(msg_conflict, opaque.ok,\n"
-"                                opaque.myerrno, opaque.output);\n"
-"                goto err_yacc;\n"
-"        }\n"
-"        if (!opaque.ok && (!opaque.myerrno || opaque.output)) {\n"
-"                ret = -EINVAL;\n"
-"                *err_msg = make_message(msg_conflict, opaque.ok,\n"
-"                                opaque.myerrno, opaque.output);\n"
-"                goto err_yacc;\n"
-"        }\n"
-"        if (!opaque.output) {\n"
-"                ret = opaque.myerrno;\n"
-"                *err_msg = opaque.err_reason;\n"
-"                goto err_yacc;\n"
-"        }\n"
-"\n"
+"        context.pool = &pool;\n"
 "        ret = parse__struct_%s(&context, value, opaque.output);\n"
 "        if (ret) {\n"
 "                if (context.msg) {\n"
@@ -1812,21 +1904,14 @@ const char parser_func_fmt[] =
 "                } else {\n"
 "                        *err_msg = make_msg_loc(context.node, \"\");\n"
 "                }\n"
-"                goto err_toconfig;\n"
+"                goto error;\n"
 "        }\n"
 "\n"
 "        mem_pool_destroy(&pool);\n"
-"        yylex_destroy(scanner);\n"
-"        fclose(fp);\n"
 "        return 0;\n"
 "\n"
-"err_toconfig:\n"
-"err_yacc:\n"
+"error:\n"
 "        mem_pool_destroy(&pool);\n"
-"        yylex_destroy(scanner);\n"
-"err_yylex_init:\n"
-"        fclose(fp);\n"
-"err_fopen:\n"
 "        return ret;\n"
 "}\n"
 "\n";

@@ -1,14 +1,14 @@
-int : parse_int dump_int free_int ( "int" );
-uint : parse_uint dump_uint free_uint ( "uint" );
-float : parse_float dump_float free_float ( "float" );
-string : parse_string dump_string free_string ( "const char *" );
-inet4 : parse_inet4 dump_inet4 free_inet4 ( "struct in_addr" );
-inet4wp : parse_inet4wp dump_inet4wp free_inet4wp ( "struct in_addr", "int" );
-inet6wp : parse_inet6wp dump_inet6wp free_inet6wp ( "struct in6_addr", "int" );
-mac : parse_eth_mac dump_eth_mac free_eth_mac ( "struct eth_mac" );
+int : parse_int dump_int free_int ( 'int' );
+uint : parse_uint dump_uint free_uint ( 'uint' );
+float : parse_float dump_float free_float ( 'float' );
+string : parse_string dump_string free_string ( 'const char *' );
+inet4 : parse_inet4 dump_inet4 free_inet4 ( 'struct in_addr' );
+inet4wp : parse_inet4wp dump_inet4wp free_inet4wp ( 'struct in_addr', 'int' );
+inet6wp : parse_inet6wp dump_inet6wp free_inet6wp ( 'struct in6_addr', 'int' );
+mac : parse_eth_mac dump_eth_mac free_eth_mac ( 'struct eth_mac' );
 
 struct s_foo {
-	int s_foo_i;
+	int s_foo_i = "1";
 	float s_foo_f[s_foo_f_len];
 	string s_foo_s[5];
 	inet6wp ip6p (ip6, prefix6);

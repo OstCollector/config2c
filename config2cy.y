@@ -44,6 +44,7 @@ static inline void valid_or_fail(void *ret)
 %token <str_val> IDEN
 %token <int_val> INTEGER
 %token <str_val> STRING
+%token <str_val> DEFVAL
 
 %type <mapping>			mapping_def
 %type <enum_list>		enum_list_t
@@ -208,8 +209,16 @@ member_list
 		$$ = NULL;
 		PDBG("member_list:nil\n");
 	}
-	| member_list member_def {
+	| member_list member_def ';' {
 		$2->next = $1;
+		$2->default_val = NULL;
+		PDBG("member_list:cons:%p, def:%p, next:%p\n",
+				$2, $2->def, $2->next);
+		$$ = $2;
+	}
+	| member_list member_def '=' DEFVAL ';' {
+		$2->next = $1;
+		$2->default_val = $4;
 		PDBG("member_list:cons:%p, def:%p, next:%p\n",
 				ret, ret->def, ret->next);
 		$$ = $2;
@@ -217,7 +226,7 @@ member_list
 	;
 
 member_def
-	: IDEN IDEN '(' iden_list_t ')' vec_def ';' {
+	: IDEN IDEN '(' iden_list_t ')' vec_def {
 		struct node_member_list *ret = malloc(sizeof(*ret));
 		valid_or_fail(ret);
 		ret->type = NODE_MEMBER_DEF_PRIM;
@@ -227,7 +236,7 @@ member_def
 		ret->vec = $6;
 		$$ = ret;
 	}
-	| IDEN IDEN vec_def ';' {
+	| IDEN IDEN vec_def {
 		struct node_member_list *ret = malloc(sizeof(*ret));
 		struct string_list *list = malloc(sizeof(*ret));
 		valid_or_fail(ret);
@@ -241,7 +250,7 @@ member_def
 		ret->vec = $3;
 		$$ = ret;
 	}
-	| ENUM IDEN IDEN vec_def ';' {
+	| ENUM IDEN IDEN vec_def {
 		struct node_member_list *ret = malloc(sizeof(*ret));
 		struct string_list *list = malloc(sizeof(*ret));
 		valid_or_fail(ret);
@@ -255,7 +264,7 @@ member_def
 		ret->vec = $4;
 		$$ = ret;
 	}
-	| STRUCT IDEN IDEN vec_def ';' {
+	| STRUCT IDEN IDEN vec_def {
 		struct node_member_list *ret = malloc(sizeof(*ret));
 		struct string_list *list = malloc(sizeof(*ret));
 		valid_or_fail(ret);
@@ -269,7 +278,7 @@ member_def
 		ret->vec = $4;
 		$$ = ret;
 	}
-	| UNION IDEN IDEN vec_def AS IDEN ';' {
+	| UNION IDEN IDEN vec_def AS IDEN {
 		struct node_member_list *ret = malloc(sizeof(*ret));
 		struct string_list *list1 = malloc(sizeof(*ret));
 		struct string_list *list2 = malloc(sizeof(*ret));
@@ -287,7 +296,7 @@ member_def
 		ret->vec = $4;
 		$$ = ret;
 	}
-	| UNION '{' alter_list '}' ':' IDEN ';' {
+	| UNION '{' alter_list '}' ':' IDEN {
 		struct node_member_list *ret = malloc(sizeof(*ret));
 		valid_or_fail(ret);
 		ret->type = NODE_MEMBER_DEF_UNNAMED_UNION;

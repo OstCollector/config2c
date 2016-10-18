@@ -74,7 +74,7 @@ struct node_value *create_node_val(struct pass_to_bison *opaque,
 %type <value> scale
 
 %%
-
+/*
 config
 	: '{' members '}' {
 		if (opaque->ok) {
@@ -103,6 +103,14 @@ config
 		} else {
 			opaque->output = NULL;
 		}
+	}
+	| error
+*/
+
+config
+	: value {
+		opaque->output = $1;
+		PDBG("output: %p\n", opaque->output);
 	}
 	| error
 	;

@@ -43,6 +43,12 @@ static void error(struct pass_to_bison *opaque);
 #define adv_token advance_token(opaque, yytext)
 #define toval(type) to_val(yylval_param, yytext, opaque, type)
 
+#if 0
+#define LDBG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define LDBG(...) do { ; } while (0)
+#endif
+
 %}
 
 %%
@@ -145,6 +151,7 @@ static void to_val(union vvstype *lvalp, const char *token,
 			break;
 		}
 	}
+	LDBG("got string: %s\n", token);
 }
 
 static void error(struct pass_to_bison *opaque) 
