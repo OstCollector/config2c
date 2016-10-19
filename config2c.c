@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
+#include <stdarg.h>
 #include "config2c.h"
 
 #define func_header() \
@@ -15,6 +16,7 @@
 	} while (0)
 
 #define ERROR(fmt, ...) do { fprintf(stderr, fmt, ##__VA_ARGS__); } while (0)
+
 
 struct node_mapping *mapping;
 struct node_type_def_list *ast;
@@ -31,6 +33,37 @@ FILE *fp_src;
 	} while (0)
 #define out_src(fmt, ...) out_fp(fp_src, "source file", fmt, ##__VA_ARGS__)
 #define out_hdr(fmt, ...) out_fp(fp_hdr, "source file", fmt, ##__VA_ARGS__)
+
+const char *make_message(const char *fmt, ...)
+{
+	int size = 0;
+	char *p = NULL;
+	va_list ap;
+
+	/* Determine required size */
+
+	va_start(ap, fmt);
+	size = vsnprintf(p, size, fmt, ap);
+	va_end(ap);
+
+	if (size < 0)
+		return NULL;
+
+	size++;		    /* For '\0' */
+	p = malloc(size);
+	if (p == NULL)
+		return NULL;
+
+	va_start(ap, fmt);
+	size = vsnprintf(p, size, fmt, ap);
+	if (size < 0) {
+		free(p);
+		return NULL;
+	}
+	va_end(ap);
+
+	return p;
+}
 
 static indent_hdr(int level)
 {
@@ -1792,6 +1825,7 @@ const char *prelude_path;
 const char *hdr_path;
 const char *src_path;
 const char *include_guard;
+int test_default;
 
 struct option opts[] = {
 	{ "spec_path", required_argument, 0, 0 },
@@ -1800,6 +1834,7 @@ struct option opts[] = {
 	{ "hdr_path", required_argument, 0, 0 },
 	{ "src_path", required_argument, 0, 0 },
 	{ "include_guard", required_argument, 0, 0 },
+	{ "test_default", no_argument, 0, 0},
 	{ 0, 0, 0, 0},
 };
 
@@ -1839,6 +1874,9 @@ int parse_opts(int argc, char **argv)
 				ARGCASE(3, hdr_path);
 				ARGCASE(4, src_path);
 				ARGCASE(5, include_guard);
+			case 6:
+				test_default = 1;
+				break;
 			}
 		} else {
 			ERR("unknown argument: %s\n", argv[optind - 1]);
@@ -1931,6 +1969,137 @@ const char config_free[] =
 "}\n"
 "\n";
 
+void make_test_default_memb(const struct node_type_def_list *list, long id,
+		const struct node_member_list *memb, long im)
+{
+	struct node_type_def_list mlist;
+	struct node_member_list mmemb;
+	const char *struct_name;
+
+	struct_name = make_message("_test_%ld_%ld", id, im);
+	if (!struct_name) {
+		fprintf(stderr, "insufficient memory\n");
+		exit(EXIT_FAILURE);
+	}
+
+	mlist.next = NULL;
+	mlist.type = NODE_TYPE_DEF_STRUCT;
+	mlist.struct_def.name = struct_name;
+	mlist.struct_def.members = &mmemb;
+	mlist.struct_def.exported = 0;
+
+	mmemb = *memb;
+	mmemb.next = NULL;
+
+	decl_def_list(&mlist);
+	parse_struct(struct_name, &mmemb);
+	free_struct(struct_name, &mmemb);
+	dump_struct(struct_name, &mmemb);
+
+	osi(0, "void test_default_%ld_%ld()\n", id, im);
+	osi(0, "{\n");
+	osi(1, "struct pass_to_conv context;\n");
+	osi(1, "struct mem_pool pool;\n");
+	osi(1, "struct node_value node;\n");
+	osi(1, "struct dump_context dummy;\n");
+	osi(1, "struct %s value;\n", struct_name);
+	osi(1, "const char *err_msg = NULL;\n");
+	osi(1, "int ret = 0;\n");
+	osi(1, "mem_pool_init(&pool);\n");
+	osi(1, "context.pool = &pool;\n");
+	osi(1, "node.type = VAL_MEMBERS;\n");
+	osi(1, "node.members = NULL;\n");
+	osi(1, "node.parent = NULL;\n");
+	osi(1, "node.name_copy = NULL;\n");
+	osi(1, "ret = parse__struct_%s(&context, &value, &node);\n",
+			struct_name);
+	osi(1, "if (ret) {\n");
+	osi(2, "if (context.msg) {\n");
+	osi(3, "err_msg = make_msg_loc(context.node, context.msg);\n");
+	osi(2, "} else {\n"); /* if msg */
+	osi(3, "err_msg = make_msg_loc(context.node, \"\");\n");
+	osi(2, "}\n"); /* else msg */
+	osi(2, "errno = ret;\n");
+	osi(2, "fprintf(stderr, \"error: %%d(%%m), %%s\\n\", ret, "
+			"err_msg ? err_msg : \"\");\n");
+	if (memb->type != NODE_MEMBER_DEF_UNNAMED_UNION) {
+		osi(2, "fprintf(stderr, \"failed to parse default value of "
+				"struct %s.%s\\n\");\n", 
+				list->struct_def.name, memb->in_name);
+	} else {
+		osi(2, "fprintf(stderr, \"failed to parse default value of "
+				"struct %s.%ld-th field (a union)\\n\");\n",
+				list->struct_def.name, im);
+	}
+	osi(2, "free((char *)err_msg);\n");
+	osi(1, "} else {\n"); /* if ret */
+	osi(2, "dump__struct_%s(put_func_impl, &dummy, 0, &value);\n", struct_name);
+	osi(2, "fprintf(stderr, \"\\n\");\n");
+	osi(2, "free__struct_%s(&value);\n", struct_name);
+	if (memb->type != NODE_MEMBER_DEF_UNNAMED_UNION) {
+		osi(2, "fprintf(stderr, \"successed to parse default value of "
+				"struct %s.%s\\n\");\n", 
+				list->struct_def.name, memb->in_name);
+	} else {
+		osi(2, "fprintf(stderr, \"successed to parse default value of "
+				"struct %s.%ld-th field (a union)\\n\");\n",
+				list->struct_def.name, im);
+	}
+	osi(1, "}\n"); /* else ret */
+	osi(1, "mem_pool_destroy(&pool);\n");
+	osi(0, "}\n"); /* func body */
+	osi(0, "\n");
+}
+
+const char *test_main_prelude =
+"struct dump_context {};\n"
+"void put_func_impl(struct dump_context *context, const char *fmt, ...)\n"
+"{\n"
+"        va_list ap;\n"
+"        va_start(ap, fmt);\n"
+"        vfprintf(stderr, fmt, ap);\n"
+"        va_end(ap);\n"
+"}\n";
+
+void make_test_default()
+{
+	const struct node_type_def_list *list;
+	const struct node_member_list *memb;
+	long id, im;
+
+	out_src("%s", test_main_prelude);
+
+	for (list = ast, id = 0; list; list = list->next, ++id) {
+		if (list->type != NODE_TYPE_DEF_STRUCT) {
+			continue;
+		}
+		for (memb = list->struct_def.members, im = 0; memb; 
+				memb = memb->next, ++im) {
+			if (!memb->default_val) {
+				continue;
+			}
+			make_test_default_memb(list, id, memb, im);
+		}
+	}
+
+	osi(0, "int main()\n");
+	osi(0, "{\n");
+	for (list = ast, id = 0; list; list = list->next, ++id) {
+		if (list->type != NODE_TYPE_DEF_STRUCT) {
+			continue;
+		}
+		for (memb = list->struct_def.members, im = 0; memb; 
+				memb = memb->next, ++im) {
+			if (!memb->default_val) {
+				continue;
+			}
+			osi(1, "test_default_%ld_%ld();\n", id, im);
+			
+		}
+	}
+	osi(0, "}\n");
+}
+
 int main(int argc, char **argv)
 {
 	const char *header_filename;
@@ -1977,6 +2146,9 @@ int main(int argc, char **argv)
 	}
 	out_src("#include \"%s\"\n", header_filename);
 	out_src("#include \"parser.h\"\n", header_filename);
+	if (test_default) {
+		osi(0, "#include <stdarg.h>\n");
+	}
 
 	copy_file(fp_hdr, fp_prelude);
 	copy_file(fp_src, fp_prim);
@@ -1990,30 +2162,34 @@ int main(int argc, char **argv)
 	out_hdr("struct dump_context;\n");
 	out_hdr("typedef void (*put_func)(struct dump_context *ctx, "
 			"const char *fmt, ...);\n");
-	for (list = ast; list; list = list->next) {
-		if (list->type == NODE_TYPE_DEF_STRUCT &&
-				list->struct_def.exported) {
-			out_src(parser_func_fmt, list->struct_def.name,
-					list->struct_def.name,
-					list->struct_def.name);
-			out_src(config_dump, list->struct_def.name,
-					list->struct_def.name,
-					list->struct_def.name);
-			out_src(config_free, list->struct_def.name,
-					list->struct_def.name,
-					list->struct_def.name);
-		
-			out_hdr("extern void config_free_%s(struct %s *);\n",
-					list->struct_def.name,
-					list->struct_def.name);
-			out_hdr("extern int config_parse_%s(struct %s *value, "
-					"const char *path, const char **err_msg);\n",
-					list->struct_def.name,
-					list->struct_def.name);
-			out_hdr("extern void config_dump_%s(put_func, struct dump_context *ctx, "
-					"const struct %s *value);\n",
-					list->struct_def.name,
-					list->struct_def.name);
+	if (test_default) {
+		make_test_default();
+	} else {
+		for (list = ast; list; list = list->next) {
+			if (list->type == NODE_TYPE_DEF_STRUCT &&
+					list->struct_def.exported) {
+				out_src(parser_func_fmt, list->struct_def.name,
+						list->struct_def.name,
+						list->struct_def.name);
+				out_src(config_dump, list->struct_def.name,
+						list->struct_def.name,
+						list->struct_def.name);
+				out_src(config_free, list->struct_def.name,
+						list->struct_def.name,
+						list->struct_def.name);
+				out_hdr("extern void config_free_%s(struct %s *);\n",
+						list->struct_def.name,
+						list->struct_def.name);
+				out_hdr("extern int config_parse_%s(struct %s *value, "
+						"const char *path, const char **err_msg);\n",
+						list->struct_def.name,
+						list->struct_def.name);
+				out_hdr("extern void config_dump_%s(put_func, "
+						"struct dump_context *ctx, "
+						"const struct %s *value);\n",
+						list->struct_def.name,
+						list->struct_def.name);
+			}
 		}
 	}
 

@@ -246,21 +246,17 @@ int yacc_parse_string(const char *str, const char **err_msg,
 
 	*err_msg = NULL;
 	ret = yylex_init(&scanner);
-	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
 	if (ret) {
 		ret = -errno;
 		goto err_yylex_init;
 	}
-	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
 	buffer_state = yy_scan_string(str, scanner);
 	if (!buffer_state) {
 		ret = -ENOMEM;
 		goto err_scan_string;
 	}
 
-	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
 	yyparse(scanner, ctx);
-	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
 	if ((ctx->ok && (ctx->myerrno || !ctx->output)) ||
 			(!ctx->ok && (!ctx->myerrno || ctx->output))) {
 		ret = -EINVAL;
@@ -268,13 +264,11 @@ int yacc_parse_string(const char *str, const char **err_msg,
 				ctx->myerrno, ctx->output);
 		goto err_yacc;
 	}
-	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
 	if (!ctx->output) {
 		ret = ctx->myerrno;
 		*err_msg = ctx->err_reason;
 		goto err_yacc;
 	}
-	fprintf(stderr, "at %d(%s), %p\n", __LINE__, __func__, str);
 	
 	yylex_destroy(scanner);
 	return 0;
