@@ -1,3 +1,23 @@
+2016-10-19  Lifan Su
+
+	* config2cy.y
+	* config2c.c
+	* config2c.h
+	* config2cl.l
+	* share/config2c/example/make.sh
+	* share/config2c/example/prim_funcs.c
+	* share/config2c/example/demo_0-syntax
+	* share/config2c/example/demo_0-example
+	* share/config2c/example/prelude
+	+ share/config2c/example/demo_0-default
+	* share/config2c/supplement/parser.h
+	* share/config2c/supplement/parserl.l
+	* share/config2c/supplement/parsery.y
+	* share/config2c/supplement/parser.c
+
+	  Version: config2c-0.2.0_alpha
+	  Added support for stringified default value
+
 2016-10-14  Lifan Su
 
 	+ ChangeLog
