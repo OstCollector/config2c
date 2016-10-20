@@ -1737,25 +1737,25 @@ static void dump_union(string name, string enum_name,
 	osi(1, "long i;\n");
 	osi(1, "func(ctx, \"{\\n\");\n");
 	for (alt = list; alt; alt = alt->next) {
-		osi(1, "if (*type_value == %s) {", alt->enum_val);
+		osi(1, "if (*type_value == %s) {\n", alt->enum_val);
 		switch (alt->type) {
 		case NODE_ALTER_DEF_PRIM:
 			decl.type = TYPE_DECL_PRIM;
 			decl.type_name = alt->type_name;
 			helper_dump(&alt->vec, &decl, alt->in_name, alt->mapped, 2);
-			osi(1, "func(ctx, \",\\n\");\n");
+			osi(2, "func(ctx, \",\\n\");\n");
 			break;
 		case NODE_ALTER_DEF_ENUM:
 			decl.type = TYPE_DECL_ENUM;
 			decl.type_name = alt->type_name;
 			helper_dump(&alt->vec, &decl, alt->in_name, alt->mapped, 2);
-			osi(1, "func(ctx, \",\\n\");\n");
+			osi(2, "func(ctx, \",\\n\");\n");
 			break;
 		case NODE_ALTER_DEF_STRUCT:
 			decl.type = TYPE_DECL_STRUCT;
 			decl.type_name = alt->type_name;
 			helper_dump(&alt->vec, &decl, alt->in_name, alt->mapped, 2);
-			osi(1, "func(ctx, \",\\n\");\n");
+			osi(2, "func(ctx, \",\\n\");\n");
 			break;
 		case NODE_ALTER_DEF_UNNAMED_STRUCT:
 			for (memb = alt->members; memb; memb = memb->next) {
@@ -1785,7 +1785,7 @@ static void dump_union(string name, string enum_name,
 							memb->mapped, 2);
 					break;
 				}
-				osi(1, "func(ctx, \",\\n\");\n");
+				osi(2, "func(ctx, \",\\n\");\n");
 			}
 		}
 		osi(1, "}\n");
