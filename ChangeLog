@@ -1,3 +1,9 @@
+2016-10-23  Lifan Su
+	* config2c.c
+
+	  Version: config2c-0.2.1_alpha
+	  Bugfix: default array caused label related compile error
+
 2016-10-19  Lifan Su
 
 	* config2cy.y
