@@ -794,7 +794,11 @@ static void helper_parse_array(const struct node_vec_def *vec,
 			osi(l + 1, "if (len && !value->%s) {\n", cv->str);
 			osi(l + 2, "ctx->node = memb->value;\n");
 			osi(l + 2, "ctx->msg = \"memory insufficient.\";\n");
-			osi(l + 2, "goto error_%s;\n", name);
+			if (!opts->is_default) {
+				osi(l + 2, "goto error_%s;\n", name);
+			} else {
+				osi(l + 2, "goto errord_%s;\n", name);
+			}
 			osi(l + 1, "}\n", cv->str);
 		}
 		osi(l + 1, "for (elem = memb->value->elems; i < len; "
@@ -847,7 +851,11 @@ static void helper_parse_array(const struct node_vec_def *vec,
 	} else {
 		osi(l + 1, "goto done_%s;\n", name);
 	}
-	osi(0, "error_%s:\n", name);
+	if (!opts->is_default) {
+		osi(0, "error_%s:\n", name);
+	} else {
+		osi(0, "errord_%s:\n", name);
+	}
 	osi(l + 1, "for (; i > 0; --i) {\n");
 	switch (decl->type) {
 	case TYPE_DECL_PRIM:
@@ -877,6 +885,7 @@ static void helper_parse_array(const struct node_vec_def *vec,
 	osi(l + 1, "goto error_all;\n");
 	if (opts->is_default) {
 		osi(l + 1, "done_%s:\n", name);
+		osi(l + 2, ";\n", name);
 	}
 	osi(l, "}\n"); /* if matches */
 }
