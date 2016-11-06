@@ -5,7 +5,7 @@
 	* config2cy.y
 	* share/config2c/example/demo_0-syntax
 
-	  Version: config2c-0.3.1_alpha
+	  Version: config2c-0.3.0_alpha
 	  Added support for invisible default value
 
 2016-10-23  Lifan Su
