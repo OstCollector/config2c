@@ -81,6 +81,7 @@ struct node_member_list {
 			struct string_list *mapped;
 			struct node_vec_def vec;
 			string default_val;
+			int visible;
 		};
 		struct {
 			struct node_alter_list  *alters;

@@ -971,6 +971,9 @@ static void parse_struct(string name, const struct node_member_list *list)
 	opts.is_default = 0;
 	osi(1, "for (memb = input->members; memb; memb = memb->next) {\n");
 	for (memb = list, idx = 0; memb; memb = memb->next, ++idx) {
+		if (!memb->visible) {
+			continue;
+		}
 		switch (memb->type) {
 		case NODE_MEMBER_DEF_PRIM:
 			opts.s.idx = idx;
@@ -1672,6 +1675,9 @@ static void dump_struct(string name, const struct node_member_list *list)
 	osi(1, "long i;\n");
 	osi(1, "func(ctx, \"{\\n\");\n");
 	for (memb = list; memb; memb = memb->next) {
+		if (!memb->visible) {
+			continue;
+		}
 		switch (memb->type) {
 		case NODE_MEMBER_DEF_PRIM:
 			decl.type = TYPE_DECL_PRIM;
@@ -1999,6 +2005,7 @@ void make_test_default_memb(const struct node_type_def_list *list, long id,
 
 	mmemb = *memb;
 	mmemb.next = NULL;
+	mmemb.visible = 1;
 
 	decl_def_list(&mlist);
 	parse_struct(struct_name, &mmemb);
@@ -2058,6 +2065,7 @@ void make_test_default_memb(const struct node_type_def_list *list, long id,
 	osi(1, "mem_pool_destroy(&pool);\n");
 	osi(0, "}\n"); /* func body */
 	osi(0, "\n");
+	
 }
 
 const char *test_main_prelude =
@@ -2103,7 +2111,6 @@ void make_test_default()
 				continue;
 			}
 			osi(1, "test_default_%ld_%ld();\n", id, im);
-			
 		}
 	}
 	osi(0, "}\n");

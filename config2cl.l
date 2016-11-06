@@ -86,6 +86,7 @@ void to_str3(void);
 ","		{ return ','; }
 ":"		{ return ':'; }
 "="		{ return '='; }
+"~"		{ return '~'; }
 
 {IL}({L}|{D})*	{ to_str(); return IDEN; }
 

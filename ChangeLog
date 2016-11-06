@@ -1,3 +1,13 @@
+2016-11-06  Lifan Su
+	* config2c.c
+	* config2c.h
+	* config2cl.l
+	* config2cy.y
+	* share/config2c/example/demo_0-syntax
+
+	  Version: config2c-0.3.1_alpha
+	  Added support for invisible default value
+
 2016-10-23  Lifan Su
 	* config2c.c
 

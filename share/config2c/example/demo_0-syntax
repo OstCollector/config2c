@@ -9,6 +9,7 @@ mac : parse_eth_mac dump_eth_mac free_eth_mac ( 'struct eth_mac' );
 
 struct s_foo {
 	int s_foo_i = "1";
+	int s_foo_j ~ "1";
 	float s_foo_f[s_foo_f_len];
 	string s_foo_s[5];
 	inet6wp ip6p (ip6, prefix6);
