@@ -1,3 +1,9 @@
+2016-11-07  Lifan Su
+	* config2c.c
+	
+	  Version: config2c-0.3.1_alpha
+	  Added --help and --version
+
 2016-11-06  Lifan Su
 	* config2c.c
 	* config2c.h

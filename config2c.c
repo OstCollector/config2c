@@ -10,6 +10,8 @@
 #include <stdarg.h>
 #include "config2c.h"
 
+#define VERSION "0.3.1_alpha"
+
 #define func_header() \
 	do { \
 		fprintf(stderr, "entering: %d %s\n", __LINE__, __func__); \
@@ -1841,6 +1843,10 @@ const char *hdr_path;
 const char *src_path;
 const char *include_guard;
 int test_default;
+int do_help;
+int do_version;
+
+const char *help_msg;
 
 struct option opts[] = {
 	{ "spec_path", required_argument, 0, 0 },
@@ -1850,12 +1856,15 @@ struct option opts[] = {
 	{ "src_path", required_argument, 0, 0 },
 	{ "include_guard", required_argument, 0, 0 },
 	{ "test_default", no_argument, 0, 0},
+	{ "help", no_argument, 0, 0},
+	{ "version", no_argument, 0, 0},
 	{ 0, 0, 0, 0},
 };
 
 #define ERR(fmt, ...) \
 	do {\
 		fprintf(stderr, fmt, ##__VA_ARGS__); \
+		fprintf(stderr, "%s", help_msg); \
 		exit(EXIT_FAILURE); \
 	} while (0)
 
@@ -1892,10 +1901,19 @@ int parse_opts(int argc, char **argv)
 			case 6:
 				test_default = 1;
 				break;
+			case 7:
+				do_help = 1;
+				break;
+			case 8:
+				do_version = 1;
+				break;
 			}
 		} else {
 			ERR("unknown argument: %s\n", argv[optind - 1]);
 		}
+	}
+	if (do_help || do_version) {
+		return 0;
 	}
 	ARGDEFINED(spec_path);
 	ARGDEFINED(prim_path);
@@ -1903,6 +1921,7 @@ int parse_opts(int argc, char **argv)
 	ARGDEFINED(hdr_path);
 	ARGDEFINED(src_path);
 	ARGDEFINED(include_guard);
+	return 0;
 }
 
 extern FILE *yyin;
@@ -2116,13 +2135,31 @@ void make_test_default()
 	osi(0, "}\n");
 }
 
+const char *help_msg =
+"Usage:\n"
+"config2c --help     print this help message.\n"
+"config2c --version  print version.\n"
+"config2c --spec_path=<config file spec>\n"
+"         --prim_path=<parser for primitive types>\n"
+"         --prelude_path=<path to prelude files>\n"
+"         --hdr_path=<path to output header file>\n"
+"         --src_path=<path to output source file>\n"
+"         --include_guard=<include gurad (#ifndef ... #define ... #nedif)>\n"
+"         --test_default (optional): generate code to test default values\n";
+
 int main(int argc, char **argv)
 {
 	const char *header_filename;
 	const struct node_type_def_list *list;
 
 	parse_opts(argc, argv);
-
+	if (do_help) {
+		fprintf(stderr, "%s", help_msg);
+		return 0;
+	} else if (do_version) {
+		fprintf(stderr, "config2c, version: %s\n", VERSION);
+		return 0;
+	}
 
 	yyin = fopen(spec_path, "r");
 	if (!yyin) {
