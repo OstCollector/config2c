@@ -2132,6 +2132,7 @@ void make_test_default()
 			osi(1, "test_default_%ld_%ld();\n", id, im);
 		}
 	}
+	osi(1, "return 0;\n");
 	osi(0, "}\n");
 }
 
