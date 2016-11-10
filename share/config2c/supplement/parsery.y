@@ -15,6 +15,8 @@ struct node_value *create_node_val(struct pass_to_bison *opaque,
 		enum val_type type, const char *val_str)
 {
 	struct node_value *ret = mem_pool_alloc(opaque->pool, sizeof(*ret));
+	PDBG("ok: %d, myerrno: %d, output: %p\n", opaque->ok,
+			opaque->myerrno, opaque->output);
 	if (!ret) {
 		opaque->ok = 0;
 		opaque->myerrno = -ENOMEM;
@@ -109,6 +111,8 @@ config
 
 config
 	: value {
+		PDBG("opaque: %p, ok: %d, myerrno: %d, output: %p\n", opaque,
+				opaque->ok, opaque->myerrno, opaque->output);
 		opaque->output = $1;
 		PDBG("output: %p\n", opaque->output);
 	}
@@ -123,6 +127,8 @@ members
 	| members '.' IDEN '=' value ',' {
 		if (opaque->ok) {
 			struct node_members *ret = mem_pool_alloc(opaque->pool, sizeof(*ret));
+			PDBG("ok: %d, myerrno: %d, output: %p\n", opaque->ok,
+					opaque->myerrno, opaque->output);
 			if (!ret) {
 				opaque->ok = 0;
 				opaque->myerrno = -ENOMEM;
@@ -149,6 +155,8 @@ elems
 		if (opaque->ok) {
 			struct node_elems *ret =
 				mem_pool_alloc(opaque->pool, sizeof(*ret));
+			PDBG("ok: %d, myerrno: %d, output: %p\n", opaque->ok,
+					opaque->myerrno, opaque->output);
 			if (!ret) {
 				opaque->ok = 0;
 				opaque->myerrno = -ENOMEM;
@@ -174,6 +182,8 @@ value
 			struct node_value *ret;
 			struct node_members *t;
 			ret = mem_pool_alloc(opaque->pool, sizeof(*ret));
+			PDBG("ok: %d, myerrno: %d, output: %p\n", opaque->ok,
+					opaque->myerrno, opaque->output);
 			if (!ret) {
 				opaque->ok = 0;
 				opaque->myerrno = -ENOMEM;
@@ -200,6 +210,8 @@ value
 			struct node_value *ret;
 			struct node_elems *t;
 			ret = mem_pool_alloc(opaque->pool, sizeof(*ret));
+			PDBG("ok: %d, myerrno: %d, output: %p\n", opaque->ok,
+					opaque->myerrno, opaque->output);
 			if (!ret) {
 				opaque->ok = 0;
 				opaque->myerrno = -ENOMEM;
@@ -248,7 +260,9 @@ int yyerror(void * scanner, struct pass_to_bison *opaque, const char *msg)
 {
 	opaque->ok = 0;
 	opaque->myerrno = -EINVAL;
+	opaque->output = NULL;
 	opaque->err_reason = make_message("%d:%d : %s",
 			opaque->first_line, opaque->first_column, msg);
+	PDBG("%s", msg);
 }
 

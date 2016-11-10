@@ -211,9 +211,6 @@ int yacc_parse_file(const char *path, const char **err_msg,
 	}
 	yyset_in(fp, scanner);
 	
-	ctx->ok = 1;
-	ctx->myerrno = 0;
-	ctx->output = NULL;
 	yyparse(scanner, ctx);
 
 	if ((ctx->ok && (ctx->myerrno || !ctx->output)) ||
@@ -260,9 +257,6 @@ int yacc_parse_string(const char *str, const char **err_msg,
 		goto err_scan_string;
 	}
 
-	ctx->ok = 1;
-	ctx->myerrno = 0;
-	ctx->output = NULL;
 	yyparse(scanner, ctx);
 	
 	if ((ctx->ok && (ctx->myerrno || !ctx->output)) ||

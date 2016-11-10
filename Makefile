@@ -1,6 +1,6 @@
 .SUFFIXES:
 
-DESTDIR=/usr/local
+DESTDIR?=/usr/local
 
 .PHONY: all clean install cfgparser
 

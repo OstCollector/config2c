@@ -57,7 +57,7 @@ void to_str3(void);
 
 #define YY_USER_ACTION advance_token();
 
-#if 0
+#if 1
 #define LDBG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
 #else
 #define LDBG(...) do { ; } while (0)

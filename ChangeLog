@@ -1,8 +1,8 @@
 2016-11-10  Lifan Su
 	* share/config2c/supplement/parser.c
 	
-	  Version: config2c-0.3.3_alpha
-	  Fixed: initialize values, which is done in test cases
+	  Version: config2c-0.3.4_alpha
+	  Fixed: parse error handling when expecting $end.
 
 2016-11-09  Lifan Su
 	* config2c.c
