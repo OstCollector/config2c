@@ -1,9 +1,18 @@
 2016-11-18  Lifan Su
 	* config2c.c
+	* config2c.h
+	* config2cy.y
+	* share/config2c/example/demo_0-syntax
+	
+	  Version: config2c-0.5.0_alpha
+	  Added support for fixed arrays whose length is variable.
+
+2016-11-18  Lifan Su
+	* config2c.c
 	* config2cl.l
 	* config2cy.y
 	* share/config2c/example/demo_0-syntax
-
+	
 	  Version: config2c-0.4.0_alpha
 	  Added support for fields for internal use without initialization.
 

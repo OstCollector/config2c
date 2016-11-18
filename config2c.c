@@ -336,8 +336,11 @@ static void decl_elem(const char *name, const struct node_vec_def *vec)
 	case NODE_TYPE_SCALE:
 		out_hdr("%s;\n", name);
 		break;
-	case NODE_TYPE_FIX_ARR:
+	case NODE_TYPE_FIX_INT:
 		out_hdr("%s[%ld];\n", name, vec->len_int);
+		break;
+	case NODE_TYPE_FIX_STR:
+		out_hdr("%s[%s];\n", name, vec->len_str);
 		break;
 	case NODE_TYPE_VAR_ARR:
 		out_hdr("*%s;\n", name);
@@ -587,9 +590,12 @@ static void helper_free_array(const struct node_vec_def *vec,
 	string free_func;
 	const struct string_list *var;
 
-	if (vec->type == NODE_TYPE_FIX_ARR) {
+	if (vec->type == NODE_TYPE_FIX_INT) {
 		osi(l, "for (i = 0; i < %ld; ++i) {\n",
 				vec->len_int);
+	} else if (vec->type == NODE_TYPE_FIX_STR) {
+		osi(l, "for (i = 0; i < %s; ++i) {\n",
+				vec->len_str);
 	} else {
 		osi(l, "for (i = 0; i < value->%s; ++i) {\n",
 				vec->len_str);
@@ -774,16 +780,27 @@ static void helper_parse_array(const struct node_vec_def *vec,
 	osi(l + 1, "}\n"); /* if type */
 
 	osi(l + 1, "i = 0;\n");
-	if (vec->type == NODE_TYPE_FIX_ARR) {
-		osi(l + 1, "if (len_node_elems(memb->value->elems) != %ld) {\n",
-				vec->len_int);
+	if (vec->type == NODE_TYPE_FIX_INT ||
+			vec->type == NODE_TYPE_FIX_STR) {
+		if (vec->type == NODE_TYPE_FIX_INT) {
+			osi(l + 1, "if (len_node_elems(memb->value->elems) != %ld) {\n",
+					vec->len_int);
+		} else {
+			osi(l + 1, "if (len_node_elems(memb->value->elems) != %s) {\n",
+					vec->len_str);
+		}
 		osi(l + 2, "ctx->node = memb->value;\n");
 		osi(l + 2, "ctx->msg = \"wrong number of elements.\";\n");
 		osi(l + 2, "ret = -EINVAL;\n");
 		osi(l + 2, "goto error_all;\n");
 		osi(l + 1, "}\n"); /* if len... */
-		osi(l + 1, "for (elem = memb->value->elems; i < %ld; "
-				"++i, elem = elem->next) {\n", vec->len_int);
+		if (vec->type == NODE_TYPE_FIX_INT) {
+			osi(l + 1, "for (elem = memb->value->elems; i < %ld; "
+					"++i, elem = elem->next) {\n", vec->len_int);
+		} else {
+			osi(l + 1, "for (elem = memb->value->elems; i < %s; "
+					"++i, elem = elem->next) {\n", vec->len_str);
+		}
 	} else {
 		osi(l + 1, "len = len_node_elems(memb->value->elems);\n");
 		osi(l + 1, "value->%s = len;\n", vec->len_str);
@@ -1622,8 +1639,10 @@ static void helper_dump_array(const struct node_vec_def *vec,
 	string dump_func;
 	osi(l, "indent(func, ctx, l + 1);\n");
 	osi(l, "func(ctx, \".%s = [\\n\");\n", name);
-	if (vec->type == NODE_TYPE_FIX_ARR) {
+	if (vec->type == NODE_TYPE_FIX_INT) {
 		osi(l, "for (i = 0; i < %ld; ++i) {\n", vec->len_int);
+	} else if (vec->type == NODE_TYPE_FIX_STR) {
+		osi(l, "for (i = 0; i < %s; ++i) {\n", vec->len_str);
 	} else {
 		osi(l, "for (i = 0; i < value->%s; ++i) {\n", vec->len_str);
 	}

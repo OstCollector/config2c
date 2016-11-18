@@ -56,7 +56,8 @@ struct node_enum_list {
 struct node_vec_def {
 	enum {
 		NODE_TYPE_SCALE,
-		NODE_TYPE_FIX_ARR,
+		NODE_TYPE_FIX_INT,
+		NODE_TYPE_FIX_STR,
 		NODE_TYPE_VAR_ARR,
 	} type;
 	union {

@@ -15,6 +15,7 @@ struct s_foo {
 	inet6wp ip6p (ip6, prefix6);
 	inet4wp ip4p (ip4, prifix4) [ip4_len];
 	int s_foo_def !;
+	int s_foo_k [!PATH_MAX] !;
 } export;
 
 enum e_foo {

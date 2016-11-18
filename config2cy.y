@@ -397,8 +397,12 @@ vec_def
 		$$.type = NODE_TYPE_SCALE;
 	}
 	| '[' INTEGER ']' {
-		$$.type = NODE_TYPE_FIX_ARR;
+		$$.type = NODE_TYPE_FIX_INT;
 		$$.len_int = $2;
+	}
+	| '[' '!' IDEN ']' {
+		$$.type = NODE_TYPE_FIX_STR;
+		$$.len_str = $3;
 	}
 	| '[' IDEN ']' {
 		$$.type = NODE_TYPE_VAR_ARR;
