@@ -1057,13 +1057,16 @@ static void parse_struct(string name, const struct node_member_list *list)
 	osi(1, "}\n"); /* for */
 	opts.is_default = 1;
 	for (memb = list, idx = 0; memb; memb = memb->next, ++idx) {
-		if (!memb->default_val) {
+		if (memb->visible && !memb->default_val) {
 			osi(1, "if (!inited[%ld]) {\n", idx);
 			osi(2, "ctx->node = input;\n");
 			osi(2, "ctx->msg = \"some field is not initialized.\";\n");
 			osi(2, "ret = -EINVAL;\n");
 			osi(2, "goto error_all;\n");
 			osi(1, "}\n"); /* if */
+			continue;
+		}
+		if (!memb->default_val) {
 			continue;
 		}
 		osi(1, "if (!inited[%ld]) {\n", idx);

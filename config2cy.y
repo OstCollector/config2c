@@ -233,6 +233,14 @@ member_list
 				ret, ret->def, ret->next);
 		$$ = $2;
 	}
+	| member_list member_def '!' ';' {
+		$2->next = $1;
+		$2->default_val = NULL;
+		$2->visible = 0;
+		PDBG("member_list:cons:%p, def:%p, next:%p\n",
+				ret, ret->def, ret->next);
+		$$ = $2;
+	}
 	;
 
 member_def
