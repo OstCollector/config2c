@@ -1,5 +1,12 @@
 2016-11-18  Lifan Su
 	* config2c.c
+	
+	  Version: config2c-0.5.1_alpha
+	  Fixed: uninitalized internal value should not be automatically
+	  	destroyed.
+
+2016-11-18  Lifan Su
+	* config2c.c
 	* config2c.h
 	* config2cy.y
 	* share/config2c/example/demo_0-syntax
