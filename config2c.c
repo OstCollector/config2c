@@ -669,7 +669,7 @@ static void helper_parse_scale(const struct type_decl *decl,
 {
 	string parse_func;
 
-	osi(l, "if (!strcmp(\"%s\", memb->name)) {\n", name);
+	osi(l, "else if (!strcmp(\"%s\", memb->name)) {\n", name);
 	if (opts->mode == PARSE_STRUCT) {
 		osi(l + 1, "if (inited[%ld]) {\n", opts->s.idx);
 		osi(l + 2, "ctx->node = memb->value;\n");
@@ -747,7 +747,7 @@ static void helper_parse_array(const struct node_vec_def *vec,
 	string parse_func, free_func;
 	const struct string_list *cv;
 
-	osi(l, "if (!strcmp(\"%s\", memb->name)) {\n", name);
+	osi(l, "else if (!strcmp(\"%s\", memb->name)) {\n", name);
 	if (opts->mode == PARSE_STRUCT) {
 		osi(l + 1, "if (inited[%ld]) {\n", opts->s.idx);
 		osi(l + 2, "ctx->node = memb->value;\n");
@@ -846,7 +846,6 @@ static void helper_parse_array(const struct node_vec_def *vec,
 		osi(l + 2, "ret = parse__union_%s(ctx, ", decl->type_name);
 		out_str_list(0, "&value->", "[i]", vars);
 		out_src(", elem->value);\n");
-		break;
 		break;
 	}
 	osi(l + 2, "if (ret) {\n");
@@ -989,6 +988,9 @@ static void parse_struct(string name, const struct node_member_list *list)
 	osi(1, "}\n"); /* if */
 	opts.is_default = 0;
 	osi(1, "for (memb = input->members; memb; memb = memb->next) {\n");
+	osi(2, "if (0) {\n");
+	osi(3, ";\n");
+	osi(2, "}\n");
 	for (memb = list, idx = 0; memb; memb = memb->next, ++idx) {
 		if (!memb->visible) {
 			continue;
@@ -1107,7 +1109,7 @@ static void parse_struct(string name, const struct node_member_list *list)
 					"value not selected\";\n");
 			osi(2, "}\n"); /* if invalid type */
 			
-			osi(2, "if (len_node_members(opaque.output) != 1) {\n");
+			osi(2, "if (len_node_members(opaque.output->members) != 1) {\n");
 			osi(3, "ctx->node = input;\n");
 			osi(3, "ctx->msg = \"invalid initial value: "
 					"multiple value selected\";\n");
@@ -1116,6 +1118,9 @@ static void parse_struct(string name, const struct node_member_list *list)
 			osi(2, "memb = opaque.output->members;\n");
 			osi(2, "memb->value->parent = input;\n");
 		}
+		osi(2, "if (0) {\n");
+		osi(3, ";\n");
+		osi(2, "}\n");
 		switch (memb->type) {
 		case NODE_MEMBER_DEF_PRIM:
 			opts.s.idx = idx;
@@ -1189,6 +1194,12 @@ static void parse_struct(string name, const struct node_member_list *list)
 				}
 			}
 		}
+		osi(2, "else {\n");
+		osi(3, "ctx->node = memb->value;\n");
+		osi(3, "ctx->msg = \"unknown member.\";\n");
+		osi(3, "ret = -EINVAL;\n");
+		osi(3, "goto error_all;\n");
+		osi(2, "}\n");
 		osi(1, "}\n"); /* if !inited */
 	}
 	osi(1, "return 0;\n");
@@ -1288,6 +1299,9 @@ static void parse_union(string name, string enum_name,
 	osi(2, "return -EINVAL;\n");
 	osi(1, "}\n"); /* for */
 	osi(1, "for (memb = input->members; memb; memb = memb->next) {\n");
+	osi(2, "if (0) {\n");
+	osi(3, ";\n");
+	osi(2, "}\n");
 	for (alt = list; alt; alt = alt->next) {
 		switch (alt->type) {
 		case NODE_ALTER_DEF_PRIM:
@@ -2034,6 +2048,7 @@ void make_test_default_memb(const struct node_type_def_list *list, long id,
 	struct node_type_def_list mlist;
 	struct node_member_list mmemb;
 	const char *struct_name;
+	struct node_alter_list *alter;
 
 	struct_name = make_message("_test_%ld_%ld", id, im);
 	if (!struct_name) {
@@ -2050,6 +2065,17 @@ void make_test_default_memb(const struct node_type_def_list *list, long id,
 	mmemb = *memb;
 	mmemb.next = NULL;
 	mmemb.visible = 1;
+
+	if (memb->type == NODE_MEMBER_DEF_UNNAMED_UNION) {
+		for (alter = memb->alters; alter; alter = alter->next) {
+			alter->enum_val = make_message("_test_%s",
+					alter->enum_val);
+			if (!alter->enum_val) {
+				fprintf(stderr, "insufficient memory\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
 
 	decl_def_list(&mlist);
 	parse_struct(struct_name, &mmemb);

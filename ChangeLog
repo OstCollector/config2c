@@ -1,3 +1,11 @@
+2016-11-22  Lifan Su
+	* config2c.c
+	
+	  Version: config2c-0.5.2_alpha
+	  Fixed: default value bugs
+	    1. enum redefined in unnamed union with default value
+	    2. unrecognized unknown field in default value
+
 2016-11-18  Lifan Su
 	* config2c.c
 	
