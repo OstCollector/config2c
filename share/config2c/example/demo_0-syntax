@@ -1,4 +1,5 @@
 int : parse_int dump_int free_int ( 'int' );
+long: parse_long dump_long free_long ( 'long' );
 uint : parse_uint dump_uint free_uint ( 'uint' );
 float : parse_float dump_float free_float ( 'float' );
 string : parse_string dump_string free_string ( 'const char *' );
@@ -26,7 +27,7 @@ enum e_foo {
 union s_v : s_v_type {
 	int i as S_V_I;
 	float j as S_V_J;
-	struct {} as S_V_S;
+	long k[k_len] as S_V_K;
 };
 
 union s_u : s_u_type {
@@ -44,11 +45,8 @@ union s_u : s_u_type {
 	} as S_U_TYPE_STR;
 };
 
-struct empty {};
-
 struct cfg {
 	struct s_foo foo;
-	struct empty earr[earr_len];
 	union s_u bar as bar_type;
 	union s_v baz[baz_len] as baz_type;
 	union {

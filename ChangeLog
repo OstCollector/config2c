@@ -1,3 +1,14 @@
+2016-12-03  Lifan Su
+	* config2c.c
+	* share/config2c/example/demo_0-default
+	* share/config2c/example/demo_0-example
+	* share/config2c/example/demo_0-syntax
+
+	  Version: convig2c-0.6.1_alpha
+	  Removed constraints, now support undefined length array and
+	    multi-mapped variables in a union.
+
+
 2016-11-22  Lifan Su
 	* config2c.c
 	

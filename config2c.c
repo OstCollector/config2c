@@ -162,6 +162,18 @@ static void verify_def_struct(const struct node_member_list *list,
 	const char *unmatch = "member %s.%s is unmatched to its type %s\n";
 	const char *no_default = "member %s.%s should not have default value\n";
 
+	const char *empty_top = "struct %s has no member, which is meaningless\n";
+	const char *empty_unnamed = "union %s has a possible candidate struct "
+		"(%ld-th field) that is empty, which is meaningless\n";
+
+	if (!list) {
+		if (top) {
+			fprintf(stderr, empty_top, name);
+		} else {
+			fprintf(stderr, empty_unnamed, name, seq);
+		}
+	}
+
 	for (i = 0; list; ++i, list = list->next) {
 		if (!top && list->default_val) {
 			fprintf(stderr, no_default, name, list->in_name);
@@ -232,11 +244,23 @@ static void verify_def_union(const struct node_alter_list *list,
 		"field) that contains an unnamed struct (%ld-th field), "
 		"which is unsupported\n";
 	const char *multimap = "alternative %s.%s is mapped to "
-		"multiple values, which is not supported in union\n";
+		"multiple values, which is not supported in unnamed union\n";
 	const char *vararr = "alternative %s.%s is vararray, "
-		"which is not supported in union\n";
+		"which is not supported in unnamed union\n";
 	const char *notexist = "member %s.%s has a unknown type %s\n";
 	const char *unmatch = "member %s.%s is unmatched to its type %s\n";
+
+	const char *empty_top = "union %s has no alternative, which is meaningless\n";
+	const char *empty_unnamed = "struct %s has an unnamed union "
+		"(%ld-th field) that is empty, which is meaningless\n";
+
+	if (!list) {
+		if (top) {
+			fprintf(stderr, empty_top, name);
+		} else {
+			fprintf(stderr, empty_unnamed, name, seq);
+		}
+	}
 
 	for (i = 0; list; ++i, list = list->next) {
 		switch (list->type) {
@@ -265,7 +289,7 @@ static void verify_def_union(const struct node_alter_list *list,
 						list->type_name);
 				exit(EXIT_FAILURE);
 			}
-			if (m > 1) {
+			if (m > 1 && !top) {
 				fprintf(stderr, multimap, name,
 						list->in_name);
 				exit(EXIT_FAILURE);
@@ -289,7 +313,7 @@ static void verify_def_union(const struct node_alter_list *list,
 			break;
 		}
 		if (list->type != NODE_ALTER_DEF_UNNAMED_STRUCT) {
-			if (list->vec.type == NODE_TYPE_VAR_ARR) {
+			if (list->vec.type == NODE_TYPE_VAR_ARR && !top) {
 				fprintf(stderr, vararr, name,
 						list->in_name);
 				exit(EXIT_FAILURE);
@@ -414,15 +438,21 @@ static void decl_alter_list(const struct node_alter_list *al, int l)
 	const struct node_mapping *map;
 
 	for (; al; al = al->next) {
+		if ((al->type == NODE_ALTER_DEF_PRIM && len_string_list(al->mapped) > 1) ||
+				al->vec.type == NODE_TYPE_VAR_ARR) {
+			ohi(l, "struct {\n");
+			++l;
+		}
 		switch (al->type) {
 		case NODE_ALTER_DEF_PRIM:
 			map = lookup_map(al->type_name);
 			pname = al->mapped;
 			ptype = map->mapped_types;
 			for (; pname; pname = pname->next, ptype = ptype->next) {
-				ohi(l,"%s ", ptype->str);
+				ohi(l, "%s ", ptype->str);
 				decl_elem(pname->str, &al->vec);
 			}
+			decl_elem_post(&al->vec, l);
 			break;
 		case NODE_ALTER_DEF_ENUM:
 			pname = al->mapped;
@@ -441,6 +471,11 @@ static void decl_alter_list(const struct node_alter_list *al, int l)
 			decl_member_list(al->members, l + 1);
 			ohi(l, "};\n");
 			break;
+		}
+		if ((al->type == NODE_ALTER_DEF_PRIM && len_string_list(al->mapped) > 1) ||
+				al->vec.type == NODE_TYPE_VAR_ARR) {
+			--l;
+			ohi(l, "};\n");
 		}
 	}
 }
