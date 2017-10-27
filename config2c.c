@@ -2017,7 +2017,7 @@ void copy_file(FILE *dst, FILE *src)
 }
 
 const char indent_dump_fmt[] = 
-"static inline indent(put_func put_func, struct dump_context *ctx, int indents)\n"
+"static inline void indent(put_func put_func, struct dump_context *ctx, int indents)\n"
 "{\n"
 "        int i;\n"
 "        for (i = 0; i < indents; ++i) {\n"

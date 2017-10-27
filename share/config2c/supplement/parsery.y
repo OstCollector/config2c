@@ -76,38 +76,6 @@ struct node_value *create_node_val(struct pass_to_bison *opaque,
 %type <value> scale
 
 %%
-/*
-config
-	: '{' members '}' {
-		if (opaque->ok) {
-			struct node_value *ret;
-			struct node_members *t;
-			ret = mem_pool_alloc(opaque->pool, sizeof(*ret));
-			if (!ret) {
-				opaque->ok = 0;
-				opaque->myerrno = -ENOMEM;
-			} else {
-				ret->type = VAL_MEMBERS;
-				ret->members = rev_node_members($2);
-				set_parent_members(ret->members, ret);
-				
-				ret->parent = NULL;
-				PDBG("value:members:%p, members:%p\n",
-						ret, ret->members);
-				PDBG("list: ");
-				for (t = ret->members; t; t = t->next) {
-					PDBG("%p  ", t);
-				}
-				PDBG("\n");
-			}
-			opaque->output = ret;
-			PDBG("output: %p\n", opaque->output);
-		} else {
-			opaque->output = NULL;
-		}
-	}
-	| error
-*/
 
 config
 	: value {
