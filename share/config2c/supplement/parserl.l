@@ -32,13 +32,15 @@ PM  [+-]
 #include "parser.h"
 #include "parsery.tab.h"
 
-static int advance_char(struct pass_to_bison *opaque, char ch);
+static void advance_char(struct pass_to_bison *opaque, char ch);
 static void advance_token(struct pass_to_bison *opaque, const char *token);
 static void to_val(union vvstype *lvalp, const char *token,
 		struct pass_to_bison *opaque, enum yytokentype type);
 static void error(struct pass_to_bison *opaque);
+void yyerror(void * scanner, struct pass_to_bison *opaque, const char *msg);
+int yylex(YYSTYPE *yylval_param, yyscan_t yyscanner, struct pass_to_bison *opaque);
 
-#define YY_DECL yylex(YYSTYPE *yylval_param, yyscan_t yyscanner, struct pass_to_bison *opaque)
+#define YY_DECL int yylex(YYSTYPE *yylval_param, yyscan_t yyscanner, struct pass_to_bison *opaque)
 
 #define adv_token advance_token(opaque, yytext)
 #define toval(type) to_val(yylval_param, yytext, opaque, type)
@@ -48,6 +50,8 @@ static void error(struct pass_to_bison *opaque);
 #else
 #define LDBG(...) do { ; } while (0)
 #endif
+
+#pragma GCC diagnostic ignored "-Wunused-function"
 
 %}
 
@@ -84,7 +88,7 @@ static void error(struct pass_to_bison *opaque);
 
 %%
 
-static int advance_char(struct pass_to_bison *opaque, char ch)
+static void advance_char(struct pass_to_bison *opaque, char ch)
 {
 	if(ch == '\n') {
 		opaque->last_line++;
@@ -148,6 +152,8 @@ static void to_val(union vvstype *lvalp, const char *token,
 			break;
 		case STRING:
 			lvalp->string_str = my_strdup(opaque, token, 1);
+			break;
+		case ERROR: /* do nothing */
 			break;
 		}
 	}

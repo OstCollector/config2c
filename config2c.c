@@ -12,6 +12,11 @@
 
 #define VERSION "0.3.1_alpha"
 
+
+int yyparse (void);
+int yyerror(const char *msg);
+
+
 #define func_header() \
 	do { \
 		fprintf(stderr, "entering: %d %s\n", __LINE__, __func__); \
@@ -67,14 +72,14 @@ const char *make_message(const char *fmt, ...)
 	return p;
 }
 
-static indent_hdr(int level)
+static void indent_hdr(int level)
 {
 	for (; level; --level) {
 		out_hdr("    ");
 	}
 }
 
-static indent_src(int level)
+static void indent_src(int level)
 {
 	for (; level; --level) {
 		out_src("    ");
@@ -848,6 +853,7 @@ static void helper_parse_array(const struct node_vec_def *vec,
 			osi(l + 1, "if (len && !value->%s) {\n", cv->str);
 			osi(l + 2, "ctx->node = memb->value;\n");
 			osi(l + 2, "ctx->msg = \"memory insufficient.\";\n");
+			osi(l + 2, "ret = -ENOMEM;\n");
 			if (!opts->is_default) {
 				osi(l + 2, "goto error_%s;\n", name);
 			} else {

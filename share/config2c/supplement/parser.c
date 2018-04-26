@@ -11,8 +11,9 @@
 typedef void *yyscan_t;
 extern void yyset_in(FILE *in_str , yyscan_t yyscanner);
 extern void *yy_scan_string (const char *yystr , yyscan_t yyscanner);
-
-
+int yylex_init(yyscan_t* ptr_yy_globals);
+int yyparse (void *scanner, struct pass_to_bison *opaque);
+int yylex_destroy (yyscan_t yyscanner );
 
 struct mem_elem {
 	struct mem_elem *next;

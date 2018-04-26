@@ -5,10 +5,11 @@
  * See LICENSE for full license details.
  */
 
-
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "config2c.h"
+
 
 static inline void valid_or_fail(void *ret)
 {
@@ -23,6 +24,9 @@ static inline void valid_or_fail(void *ret)
 #else
 #define PDBG(...) do { ; } while (0)
 #endif
+
+extern int yyerror(const char *msg);
+extern int yylex (void);
 
 }
 

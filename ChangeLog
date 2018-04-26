@@ -1,3 +1,14 @@
+2018-04-26  Lifan Su
+	* config2c.c
+	* config2cl.l
+	* config2cy.y
+	* share/config2c/supplement/parser.c
+	* share/config2c/supplement/parserl.l
+	* share/config2c/supplement/parsery.y
+
+	  Version: config2c-0.6.3_alpha
+	  Omit compiler (GCC) warnings.
+
 2017-10-27  Lifan Su
 	* config2c.c
 	* share/config2c/supplement/parsery.y

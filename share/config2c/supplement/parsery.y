@@ -49,9 +49,14 @@ struct node_value *create_node_val(struct pass_to_bison *opaque,
 		ret->string_str = val_str;
 		PDBG("value:str:%p, str:%p\n", ret, ret->string_str);
 		break;
+	default: /* should never reach here */
+		PDBG("impossible");
 	}
 	return ret;
 }
+
+void yyerror(void * scanner, struct pass_to_bison *opaque, const char *msg);
+#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
 
 %}
 
@@ -224,7 +229,7 @@ scale
 
 %%
 
-int yyerror(void * scanner, struct pass_to_bison *opaque, const char *msg)
+void yyerror(void * scanner, struct pass_to_bison *opaque, const char *msg)
 {
 	opaque->ok = 0;
 	opaque->myerrno = -EINVAL;
