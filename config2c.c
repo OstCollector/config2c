@@ -1247,6 +1247,9 @@ static void parse_struct(string name, const struct node_member_list *list)
 	osi(0, "error_all:\n");
 	for (memb = list, idx = 0; memb; memb = memb->next, ++idx) {
 		osi(1, "if (inited[%ld]) {\n", idx);
+		if (!memb->visible && !memb->default_val) {
+			continue;
+		}
 		switch (memb->type) {
 		case NODE_MEMBER_DEF_PRIM:
 			decl.type = TYPE_DECL_PRIM;
