@@ -26,7 +26,7 @@ enum val_type {
 	VAL_SCALE_STRING,
 	VAL_MEMBERS,
 	VAL_ELEMS,
-} type;
+};
 
 struct node_value {
 	union {
